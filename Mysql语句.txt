@@ -1,0 +1,291 @@
+CREATE DATABASE hpu;
+
+USE hpu;
+
+-- 用户信息表 （请不要更改顺序）
+CREATE TABLE user (
+    id INTEGER PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(80) UNIQUE NOT NULL,
+    password_hash VARCHAR(128) NOT NULL
+);
+
+-- 学生信息表
+CREATE TABLE students (
+    student_id INT PRIMARY KEY AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    age INT NOT NULL,
+    major VARCHAR(100) NOT NULL,
+    user_id INT,
+    FOREIGN KEY (user_id) REFERENCES user(id)
+);
+
+-- 宿舍分配表
+CREATE TABLE dormitory_assignments (
+    assignment_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT NOT NULL,
+    dormitory_id INT NOT NULL,
+    room_number VARCHAR(10) NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(student_id)
+);
+
+-- 进出记录表
+CREATE TABLE access_records (
+    record_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT NOT NULL,
+    access_time DATETIME NOT NULL,
+    access_type ENUM('in', 'out') NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(student_id)
+);
+
+-- 课程信息表
+CREATE TABLE courses (
+    course_id INT PRIMARY KEY AUTO_INCREMENT,
+    course_name VARCHAR(100) NOT NULL,
+    location VARCHAR(100) NOT NULL,
+    teacher VARCHAR(100) NOT NULL
+);
+
+-- 选课信息表
+CREATE TABLE course_selections (
+    selection_id INT AUTO_INCREMENT PRIMARY KEY,
+    student_id INT NOT NULL,
+    course_id INT NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(student_id),
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
+);
+
+-- 实践实验表
+CREATE TABLE practical_experiments (
+    experiment_id INT AUTO_INCREMENT PRIMARY KEY,
+    experiment_name VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    course_id INT NOT NULL,
+    FOREIGN KEY (course_id) REFERENCES courses(course_id)
+);
+
+
+-- 财务缴费表
+CREATE TABLE financial_records (
+    record_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL,
+    due_date DATE NOT NULL,
+    status ENUM('paid', 'unpaid') NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(student_id)
+);
+
+ALTER TABLE students
+MODIFY COLUMN age INT NOT NULL DEFAULT 32767;
+
+ALTER TABLE financial_records
+MODIFY COLUMN status ENUM('paid', 'unpaid') NOT NULL DEFAULT 'unpaid';
+
+ALTER TABLE students
+ADD CONSTRAINT check_age_range
+CHECK (age >= 16);
+
+ALTER TABLE financial_records
+ADD CONSTRAINT check_amount_positive
+CHECK (amount >= 0);
+
+
+CREATE INDEX idx_username ON user(username);
+CREATE INDEX idx_student_name ON students(name);
+CREATE INDEX idx_student_id_in_assignments ON dormitory_assignments(student_id);
+CREATE INDEX idx_student_id_in_access_records ON access_records(student_id);
+CREATE INDEX idx_course_name ON courses(course_name);
+CREATE INDEX idx_student_id_in_course_selections ON course_selections(student_id);
+CREATE INDEX idx_experiment_name ON practical_experiments(experiment_name);
+CREATE INDEX idx_student_id_in_financial_records ON financial_records(student_id);
+
+CREATE VIEW student_info_with_username AS
+SELECT s.name, s.age, s.major, u.username
+FROM students s
+JOIN user u ON s.user_id = u.id;
+
+CREATE VIEW student_course_selections AS
+SELECT st.name, c.course_name
+FROM students st
+JOIN course_selections cs ON st.student_id = cs.student_id
+JOIN courses c ON cs.course_id = c.course_id;
+
+CREATE VIEW student_dormitory_info AS
+SELECT s.name, da.dormitory_id, da.room_number
+FROM students s
+JOIN dormitory_assignments da ON s.student_id = da.student_id;
+
+CREATE VIEW student_unpaid_records AS
+SELECT s.name, fr.amount, fr.due_date
+FROM students s
+JOIN financial_records fr ON s.student_id = fr.student_id
+WHERE fr.status = 'unpaid';
+
+CREATE VIEW course_practical_experiments AS
+SELECT c.course_name, pe.experiment_name, pe.description
+FROM courses c
+JOIN practical_experiments pe ON c.course_id = pe.course_id;
+
+
+-- 插入学生信息
+INSERT INTO students (name, age, major, user_id) VALUES ('张三', 20, '计算机科学', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('李四', 21, '电子工程', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('王五', 22, '机械工程', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('赵六', 23, '土木工程', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('孙七', 24, '软件工程', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('周八', 25, '信息安全', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('吴九', 26, '生物工程', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('郑十', 27, '化学工程', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('王十一', 28, '物理学', NULL);
+INSERT INTO students (name, age, major, user_id) VALUES ('李十二', 29, '数学', NULL);
+
+-- 插入宿舍分配信息
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32770, 1, '101');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32772, 2, '202');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32773, 3, '503');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32774, 4, '104');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32775, 5, '705');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32776, 6, '606');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32777, 7, '307');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32778, 8, '808');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32779, 9, '309');
+INSERT INTO dormitory_assignments (student_id, dormitory_id, room_number) VALUES (32771, 7, '510');
+
+-- 插入进出记录
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32768, '2023-01-01 08:00:00', 'in');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32769, '2023-01-01 09:00:00', 'out');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32770, '2023-01-01 10:00:00', 'in');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32771, '2023-01-01 11:00:00', 'out');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32772, '2023-01-01 12:00:00', 'in');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32773, '2023-01-01 13:00:00', 'out');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32774, '2023-01-01 14:00:00', 'in');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32775, '2023-01-01 15:00:00', 'out');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32776, '2023-01-01 16:00:00', 'in');
+INSERT INTO access_records (student_id, access_time, access_type) VALUES (32777, '2023-01-01 17:00:00', 'out');
+
+-- 插入课程信息
+INSERT INTO courses (course_name, location, teacher) VALUES ('计算机网络', '教室101', '张老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('数据结构', '教室102', '李老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('操作系统', '教室103', '王老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('数据库系统', '教室104', '侯老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('软件工程', '教室105', '孙老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('信息安全', '教室106', '周老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('生物工程', '教室107', '吴老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('化学工程', '教室108', '郑老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('物理学', '教室109', '王老师');
+INSERT INTO courses (course_name, location, teacher) VALUES ('数学', '教室110', '李老师');
+
+-- 插入选课信息
+INSERT INTO course_selections (student_id, course_id) VALUES (32768, 1);
+INSERT INTO course_selections (student_id, course_id) VALUES (32769, 2);
+INSERT INTO course_selections (student_id, course_id) VALUES (32770, 3);
+INSERT INTO course_selections (student_id, course_id) VALUES (32771, 4);
+INSERT INTO course_selections (student_id, course_id) VALUES (32772, 5);
+INSERT INTO course_selections (student_id, course_id) VALUES (32773, 6);
+INSERT INTO course_selections (student_id, course_id) VALUES (32774, 7);
+INSERT INTO course_selections (student_id, course_id) VALUES (32775, 8);
+INSERT INTO course_selections (student_id, course_id) VALUES (32776, 9);
+INSERT INTO course_selections (student_id, course_id) VALUES (32777, 10);
+
+-- 插入实践实验信息
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('网络实验', '计算机网络实验', 1);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('数据结构实验', '数据结构实验', 2);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('操作系统实验', '操作系统实验', 3);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('数据库实验', '数据库系统实验', 4);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('软件工程实验', '软件工程实验', 5);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('信息安全实验', '信息安全实验', 6);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('生物工程实验', '生物工程实验', 7);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('化学工程实验', '化学工程实验', 8);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('物理学实验', '物理学实验', 9);
+INSERT INTO practical_experiments (experiment_name, description, course_id) VALUES ('数学实验', '数学实验', 10);
+
+-- 插入财务缴费信息
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32768, 1000.00, '2023-02-01', 'unpaid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32769, 2000.00, '2023-02-01', 'paid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32770, 1500.00, '2023-02-01', 'unpaid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32771, 2500.00, '2023-02-01', 'paid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32772, 3000.00, '2023-02-01', 'unpaid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32773, 3500.00, '2023-02-01', 'paid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32774, 4000.00, '2023-02-01', 'unpaid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32775, 4500.00, '2023-02-01', 'paid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32776, 5000.00, '2023-02-01', 'unpaid');
+INSERT INTO financial_records (student_id, amount, due_date, status) VALUES (32777, 5500.00, '2023-02-01', 'paid');
+
+
+DELIMITER //
+CREATE PROCEDURE get_student_course_selections(IN student_name VARCHAR(100))
+BEGIN
+SELECT c.course_name
+FROM students s
+JOIN course_selections cs ON s.student_id = cs.student_id
+JOIN courses c ON cs.course_id = c.course_id
+WHERE s.name = student_name;
+END //
+DELIMITER ;
+
+DELIMITER //
+CREATE PROCEDURE update_student_age(IN student_name VARCHAR(100), IN new_age INT)
+BEGIN
+UPDATE students
+SET age = new_age
+WHERE name = student_name;
+END //
+DELIMITER ;
+
+
+-- 删除学生记录时，删除相关的宿舍分配记录
+CREATE TRIGGER delete_dormitory_assignments
+AFTER DELETE ON students
+FOR EACH ROW
+BEGIN
+    DELETE FROM dormitory_assignments WHERE student_id = OLD.student_id;
+END;
+
+-- 删除学生记录时，删除相关的进出记录
+CREATE TRIGGER delete_access_records
+AFTER DELETE ON students
+FOR EACH ROW
+BEGIN
+    DELETE FROM access_records WHERE student_id = OLD.student_id;
+END;
+
+-- 删除学生记录时，删除相关的选课记录
+CREATE TRIGGER delete_course_selections
+AFTER DELETE ON students
+FOR EACH ROW
+BEGIN
+    DELETE FROM course_selections WHERE student_id = OLD.student_id;
+END;
+
+-- 删除学生记录时，删除相关的财务缴费记录
+CREATE TRIGGER delete_financial_records
+AFTER DELETE ON students
+FOR EACH ROW
+BEGIN
+    DELETE FROM financial_records WHERE student_id = OLD.student_id;
+END;
+
+-- 删除课程记录时，删除相关的选课记录
+CREATE TRIGGER delete_course_selections_on_course
+AFTER DELETE ON courses
+FOR EACH ROW
+BEGIN
+    DELETE FROM course_selections WHERE course_id = OLD.course_id;
+END;
+
+-- 删除课程记录时，删除相关的实践实验记录
+CREATE TRIGGER delete_practical_experiments_on_course
+AFTER DELETE ON courses
+FOR EACH ROW
+BEGIN
+    DELETE FROM practical_experiments WHERE course_id = OLD.course_id;
+END;
+
+-- 删除学生记录时，删除相关的用户记录
+CREATE TRIGGER delete_user_on_student_delete
+AFTER DELETE ON students
+FOR EACH ROW
+BEGIN
+    DELETE FROM user WHERE id = OLD.user_id;
+END;
+
+
